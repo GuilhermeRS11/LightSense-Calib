@@ -180,7 +180,7 @@ end
 
 screenSize = get(0, 'Screensize');
 set(gcf, 'Position', [screenSize(1), screenSize(2), screenSize(3)/2, screenSize(4)]);  % Half the width and full height of the screen
-exportgraphics(f,'saved_images/Rsquared_eachMethod_eachTrial_diffusers.pdf','ContentType','vector');
+exportgraphics(f,'saved_images/Rsquared_eachMethod_eachTrial_diffusers.png','ContentType','vector');
 
 %% Overall R² of each method, aiming to simplify the analysis (average)
 
@@ -230,7 +230,7 @@ axis tight;
 ylim([0 1.1]);
 hold off;
 
-exportgraphics(f,'saved_images/Rsquared_Method_eachMethod.pdf','ContentType','vector');
+exportgraphics(f,'saved_images/Rsquared_Method_eachMethod.png','ContentType','vector');
 
 %% Reconstructed spectrum using the average coefficient of each method
 
@@ -352,7 +352,7 @@ ax2.YAxis.FontSize = fontSizeAxis;
 
 screenSize = get(0, 'Screensize');
 set(gcf, 'Position', [screenSize(1), screenSize(2), screenSize(3)/2, screenSize(4)]);  % Half the width and full height of the screen
-exportgraphics(f,append('saved_images/SPD_reconstructed_methods',experiment,'.pdf'),'ContentType','vector');
+exportgraphics(f,append('saved_images/SPD_reconstructed_methods',experiment,'.png'),'ContentType','vector');
 
 %% Function that reconstructs the spectrum through the Golden Device matrix
 function SPD_reconstructed = spectrum_restore(calibration_coeficients, sensor_values)

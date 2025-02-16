@@ -130,8 +130,7 @@ leg = legend([h1, h2, h3], ["Sphere SPD", "Reconstruction", "Adjusted Reconstruc
 ylim([minValue - maxValue*(0.15), maxValue*(1.1)]);
 xlim([WaveLenght(1) WaveLenght(end)]);
 
-exportgraphics(f,append('saved_images/CalibrationIdealCoefficients_',experiment,'.pdf'),'ContentType','vector');
-
+exportgraphics(f,append('saved_images/CalibrationIdealCoefficients_',experiment,'.png'),'ContentType','vector');
 
 %% Method 1 (All trials) - Adjust basic_counts through the reconstructed spectrum
 
@@ -312,7 +311,7 @@ calibr_coeficients = squeeze(mean_coeficients(1, 1, :))'; % Export the MSE that 
 save('calibr_coeficients.mat', 'calibr_coeficients');
 
 set(gcf, 'Position', get(0, 'Screensize'));  % Maximizes the figure window
-exportgraphics(f,'saved_images/All_R2.pdf','ContentType','vector');
+exportgraphics(f,'saved_images/All_R2.png','ContentType','vector');
 
 %% Reconstructed spectrum using the average coefficient of each method
 
@@ -370,7 +369,7 @@ legend(["Sphere SPD" "Uncalibrated" "MSE" "WMSE" "MAE" "RMSE"],'location','north
 ylim([minValue - maxValue*(0.15), maxValue*(1.1)]);
 xlim([380, 1000]);
 
-exportgraphics(f,append('saved_images/SPD_reconstructed_methods_',experiment,'.pdf'),'ContentType','vector');
+exportgraphics(f,append('saved_images/SPD_reconstructed_methods_',experiment,'.png'),'ContentType','vector');
 
 %% Function that reconstructs the spectrum through the Golden Device matrix
 function SPD_reconstruida_norm = spectrum_restore(calibration_coeficients, sensor_values)

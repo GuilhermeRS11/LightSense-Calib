@@ -1,7 +1,7 @@
-% Este código le os dados do sensor AS7341 enviados pelo arduino via serial
-% e processa os dados, ajustando e exibindo os resultados
+% This code reads data from the AS7341 sensor sent by the Arduino via serial
+% and processes the data, adjusting and displaying the results
 
-%% Processar dados do sensor, exibir no grafico e calcular iluminancia
+%% Process sensor data, display on the graph, and calculate illuminance
 clc; 
 clear all;
 arduino  = serialport("COM5", 9600);
@@ -23,16 +23,16 @@ tint_ms = (ATIME + 1) * (ASTEP + 1) * (2.78/1000);
 % constant vlaus those will affects the measurements permantly,
 corr_sensor_offset = [0.00196979, 0.00724927, 0.00319381, 0.001314659, 0.001468153, 0.001858105, 0.001762778, 0.00521704, 0.003, 0.001];
 
-% Colocar aqui o coeficiente pra ajustar os pontos dado atraves dos ensaios na esfera
-corr_sensor_factor = [1.028112, 1.031493, 1.031425, 1.031247, 1.033897, 1.034449, 1.035083, 1.033594, 1.2384, 1.269416]; % Coeficientes da OSRAM
-%corr_sensor_factor = [1.338262461, 1.044222867, 0.8604542965, 0.803963411, 0.6857015252, 0.788397613, 0.9612483281, 1] %Coeficientes que tirei usando dados da esfera
+% Place here the coefficient to adjust the points given through the tests in the sphere
+corr_sensor_factor = [1.028112, 1.031493, 1.031425, 1.031247, 1.033897, 1.034449, 1.035083, 1.033594, 1.2384]; % OSRAM Coefficients
+%corr_sensor_factor = [1.338262461, 1.044222867, 0.8604542965, 0.803963411, 0.6857015252, 0.788397613, 0.9612483281, 1] % Coefficients I took using sphere data
 
 % Special XYZ Calibration Matrix for  Golden Device ("Created" Reference Device from gathered 
 % production-device data) - Based on Full, Production-Wide Device-Characteristic Dataset (not a 
 % per-device, so gives good, but not perfect results - Supports production without per-unit calibration) 
 y_correction = [0.01396, 0.16748, 0.23538, 1.4275, 1.8867, 1.142, 0.46497, -0.027018, -0.24468, -0.019926];
 
-% Constante de conversão para PFD
+% Conversion constant for PFD
 ConstPP = (1e-3)/(6.02214076e23*2.998e8*6.62607015e-34);
 
 figure(1)
@@ -40,13 +40,13 @@ h = plot(sensor_waveLength, sensor_values, '-o');
 grid on;
 xlim([400 1000]);
 %ylim([0 1000]);
-title("Sensores de Luz");
-ylabel("Magnitude")
-xlabel("Comprimento de onda [nm]");
+title("Light Sensors");
+ylabel("Magnitude");
+xlabel("Wavelength [nm]");
 
 sensor_waveLength = [415, 445, 480, 515, 555, 590, 630, 680, 750, 900];
 
-% Le os dados da tabela das curva e separa em vetores
+% Reads the data from the table and separates it into vectors
 matrixValues = xlsread("General_Spec_Corr_Matrix.xlsx");
 
 while(1)
@@ -82,17 +82,15 @@ while(1)
    
     sensor_values = [F1, F2, F3, F4, F5, F6, F7, F8, Clear, NIR];
     
-    % Por algum motivo preciso dividir por 2 para funcionar. Pq será?
     sensor_values_corr = (sensor_values - corr_sensor_offset).*corr_sensor_factor;
-    sensor_values_corr = sensor_values_corr ./ 2;
+    sensor_values_corr = sensor_values_corr ./ 2;  % Just a correction test value. It's not a confirmed value
     
     iluminance = y_correction * sensor_values_corr' * 683
     
-    % Teste conversao para PFD usando o sensor_values_corr como potencia
-    % radiante
+    % Test conversion to PFD using sensor_values_corr as radiant power
     PFD = (sum(sensor_waveLength.*sensor_values_corr))*ConstPP
     
-    % Teste de PPFD apenas tirando os sensores clear e NIR
+    % Test of PPFD just removing the clear and NIR sensors
     PPFD = (sum(sensor_waveLength(1,1:8).*sensor_values_corr(1,1:8)))*ConstPP
     
     set(h, 'XData', sensor_waveLength, 'YData', sensor_values_corr);
@@ -100,12 +98,12 @@ while(1)
     clc;
 end
 
-%% Plot curva dos sensores
+%% Plot sensor curves
 clc;
 close all;
 clear all;
 
-% Le os dados da tabela das curva e separa em vetores
+% Reads the data from the table of curves and separates it into vectors
 sensorCurves = xlsread("Typical_AS7341_filters.xlsx");
 WaveLenght = sensorCurves(3:end, 1);
 F1curve = sensorCurves(3:end, 2);
@@ -120,7 +118,7 @@ Clearcurve = sensorCurves(3:end, 10);
 
 figure(2);
 plot(WaveLenght, F1curve);
-title("Curva caracteristica dos filtros do sensor");
+title("Characteristic curve of the sensor filters");
 hold on;
 plot(WaveLenght, F2curve);
 plot(WaveLenght, F3curve);
@@ -131,7 +129,7 @@ plot(WaveLenght, F7curve);
 plot(WaveLenght, F8curve);
 plot(WaveLenght, Clearcurve);
 grid on;
-xlabel("Comprimento de onda [nm]");
+xlabel("Wavelength [nm]");
 ylabel("Magnitude");
 legend(["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "Clear"]);
 
@@ -140,7 +138,7 @@ clc;
 close all;
 clear all;
 
-% Le os dados da tabela das curva e separa em vetores
+% Reads the data from the table of curves and separates it into vectors
 matrixValues = xlsread("General_Spec_Corr_Matrix.xlsx");
 WaveLenght = matrixValues(2:end, 1);
 matrix_GSCM = matrixValues(2:end, 2:end);
@@ -197,21 +195,21 @@ reconstructedSpectroNorm = reconstructedSpectro./max(reconstructedSpectro);
 
 figure(4)
 plot(WaveLenght, reconstructedSpectro, 'lineWidth', 1);
-title("Espectro reconstruido");
-xlabel("Comprimento de onda [nm]");
-ylabel("Sensitividade");
+title("Reconstructed Spectrum");
+xlabel("Wavelength [nm]");
+ylabel("Sensitivity");
 grid on;
 xlim([380 1000]);
 
 figure(5)
 plot(WaveLenght, reconstructedSpectroNorm, 'lineWidth', 1);
-title("Espectro reconstruido normalizado");
-xlabel("Comprimento de onda [nm]");
-ylabel("Sensitividade");
+title("Reconstructed normalized spectrum");
+xlabel("Wavelength [nm]");
+ylabel("Sensitivity");
 grid on;
 xlim([380 1000]);
 
-%% Ler sensores e plotar espectro a partir do calculo usando a General Spectral Correction Matrix (GSCM)
+%% Read sensors and plot spectrum from calculation using the General Spectral Correction Matrix (GSCM)
 clc; 
 clear all;
 arduino  = serialport("COM13", 9600);
@@ -227,8 +225,8 @@ WaveLenght = 380:1:1000;
 reconstructedSpectro = zeros(1,(1000-380+1));
 sensor_values = zeros(1,9);
 
-% Encontra os indices dos valores mais próximos a 400nm e 700nm
-% a fim de calcular o PPF
+% Finds the indices of the values closest to 400nm and 700nm
+% in order to calculate the PPF
 for i=1:length(WaveLenght)
     if(ge(WaveLenght(1, i),400))
         ind_inf = i;
@@ -243,11 +241,11 @@ for i=flip(1:length(WaveLenght))
     end
 end
 
-% Le os dados da tabela GSCM
+% Reads the data from the GSCM table
 matrixValues = xlsread("General_Spec_Corr_Matrix.xlsx");
 matrix_GSCM = matrixValues(2:end, 2:end);
 
-% Le tabela da CIE1931
+% Reads the CIE1931 table
 CIE1931 = xlsread("CIE1931_XYZ.xlsx");
 CIE1931_Y = CIE1931(:,3);
 
@@ -256,25 +254,26 @@ CIE1931_Y = CIE1931(:,3);
 % constant vlaus those will affects the measurements permantly,
 corr_sensor_offset = [0.00196979, 0.00724927, 0.00319381, 0.001314659, 0.001468153, 0.001858105, 0.001762778, 0.00521704, 0.003, 0.001];
 
-% Colocar aqui o coeficiente pra ajustar os pontos dado atraves dos ensaios na esfera
-corr_sensor_factor = [1.028112, 1.031493, 1.031425, 1.031247, 1.033897, 1.034449, 1.035083, 1.033594, 1.2384, 1.269416]; % Coeficientes da OSRAM
-%corr_sensor_factor = [1.338262461, 1.044222867, 0.8604542965, 0.803963411, 0.6857015252, 0.788397613, 0.9612483281, 1] %Coeficientes que tirei usando dados da esfera
+% Place here the coefficient to adjust the points given through the tests in the sphere
+corr_sensor_factor = [1.028112, 1.031493, 1.031425, 1.031247, 1.033897, 1.034449, 1.035083, 1.033594, 1.2384, 1.269416]; % OSRAM Coefficients
+%corr_sensor_factor = [1.338262461, 1.044222867, 0.8604542965, 0.803963411, 0.6857015252, 0.788397613, 0.9612483281, 1] % Coefficients I took using sphere data
 
 
-% Constante de conversão para PFD
+% Conversion constant for PFD
 ConstPP = (1e-3)/(6.02214076e23*2.998e8*6.62607015e-34);
 
 figure(1)
 h = plot(WaveLenght, reconstructedSpectro, 'b');
 grid on;
 xlim([380 1000]);
-title("Espectro reconstruido da luz medida");
-ylabel("Sensitividade")
-xlabel("Comprimento de onda [nm]");
+title("Reconstructed spectrum of measured light");
+ylabel("Sensitivity");
+xlabel("Wavelength [nm]");
 
 buffer_sensor_values = zeros(100, 10);
 iteracao = 1;
 
+# Loop to read the sensor data and calculate the spectrum
 while(1)
     value = readline(arduino);
     F1 = str2double(value)/(GAIN512 * tint_ms);
@@ -314,8 +313,8 @@ while(1)
     
     reconstructedSpectro = matrix_GSCM * sensor_values_corr';
    
-    % Por algum motivo preciso dividir por 2 para funcionar. Pq será?
-    reconstructedSpectro = reconstructedSpectro ./ 2; % isso aqui é potencia radiante!!!!
+    
+    reconstructedSpectro = reconstructedSpectro ./ 2;  % Just a correction test value. It's not a confirmed value
     
     iluminance = reconstructedSpectro(1:401,1)' * CIE1931_Y * 683
     

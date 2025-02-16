@@ -273,7 +273,7 @@ xlabel("Wavelength [nm]");
 buffer_sensor_values = zeros(100, 10);
 iteracao = 1;
 
-# Loop to read the sensor data and calculate the spectrum
+% Loop to read the sensor data and calculate the spectrum
 while(1)
     value = readline(arduino);
     F1 = str2double(value)/(GAIN512 * tint_ms);
@@ -310,16 +310,14 @@ while(1)
     sensor_values_corr = (sensor_values - corr_sensor_offset).*corr_sensor_factor;
     %sensor_values_corr = sensor_values;
     
-    
     reconstructedSpectro = matrix_GSCM * sensor_values_corr';
    
-    
     reconstructedSpectro = reconstructedSpectro ./ 2;  % Just a correction test value. It's not a confirmed value
     
-    iluminance = reconstructedSpectro(1:401,1)' * CIE1931_Y * 683
+    iluminance = reconstructedSpectro(1:401,1)' * CIE1931_Y * 683;
     
-    PFD = (sum(WaveLenght'.*reconstructedSpectro))*ConstPP
-    PPFD = (sum(WaveLenght(1, ind_inf:ind_sup)'.*reconstructedSpectro(ind_inf:ind_sup,1)))*ConstPP
+    PFD = (sum(WaveLenght'.*reconstructedSpectro))*ConstPP;
+    PPFD = (sum(WaveLenght(1, ind_inf:ind_sup)'.*reconstructedSpectro(ind_inf:ind_sup,1)))*ConstPP;
     
     set(h, 'XData', WaveLenght, 'YData', reconstructedSpectro);
     pause(1);

@@ -319,6 +319,7 @@ exportgraphics(f,'saved_images/All_R2.pdf','ContentType','vector');
 % Define the experiment to be analyzed. Within the standard of "Complete Experiments"
 experiment = "RGBW_100";
 Nome_grafico = "RGBW";
+load(append("calibration_tests/sensor_measurements/",experiment,"-100_amostras.mat"));
 file = append("calibration_tests/sphere_measurements/spectrum/",experiment,"_S.txt")';
 
 load(append("calibration_tests/sensor_measurements/",experiment,"-100_amostras.mat"));
@@ -327,7 +328,7 @@ sensor_values_no_diff = sensor_values_no_diff .* gain_correction;
 
 % Adapt the sphere values from 800 to 1100 to be zero, as we don't have information for them
 sphere_SPD = zeros(1, length(WaveLenght)); 
-load(append("calibration_tests/sphere_measurements/spectrum/", experiment,"_S.mat"));
+load(append("/calibration_tests/sphere_measurements", experiment,"_S.mat"));
 sphere_SPD(1:421) = data.Wrad_relative;
 
 

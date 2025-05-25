@@ -1,3 +1,5 @@
+> 🔗 [🇧🇷 Read this page in Portuguese](README_pt.md)
+
 # LightSense-Calib: Spectral Calibration of the AS7341 Sensor
 
 ## 📌 Project Overview

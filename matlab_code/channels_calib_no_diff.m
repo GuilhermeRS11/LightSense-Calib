@@ -132,6 +132,48 @@ xlim([WaveLenght(1) WaveLenght(end)]);
 
 exportgraphics(f,append('saved_images/CalibrationIdealCoefficients_',experiment,'.png'),'ContentType','vector');
 
+%% Frequency response analysis of the GSCM matrix rows
+% Each row of the GSCM matrix is interpreted as a FIR filter with 10 coefficients (1 per channel)
+
+[num_lines, num_channels] = size(matrix_GSCM);
+
+f = figure;
+hold on;
+
+% Plot frequency response of all rows
+for i = 1:num_lines
+    h = matrix_GSCM(i, :);  % Coefficients of row i
+    [H, w] = freqz(h, 1, 512);  % Frequency response with 512 points
+    plot(w/pi, abs(H));  % Normalized frequency (0 to 1)
+end
+
+xlabel('Normalized Frequency (\times\pi rad/sample)');
+ylabel('Magnitude');
+title('Frequency responses of the GSCM matrix rows');
+grid on;
+exportgraphics(f, 'saved_images/GSCM_line_freq_response.png', 'ContentType', 'vector');
+
+%% Frequency analysis of the spectral error
+% Evaluates the frequency composition of the error (difference between reference and reconstructed SPD)
+
+% Compute pointwise error
+erro_spectrum = sphere_SPD' - SPD_reconstructed_adjusted;
+
+% Apply FFT to the error
+erro_fft = fft(erro_spectrum);
+erro_fft_mag = abs(erro_fft);
+erro_fft_mag = erro_fft_mag(1:floor(end/2)); % keep only the positive half (real spectrum)
+freqs = linspace(0, 0.5, length(erro_fft_mag)); % Normalized frequency (0 to 0.5)
+
+% Plot frequency spectrum of the error
+f = figure;
+plot(freqs, erro_fft_mag, 'k', 'LineWidth', 1.5);
+xlabel('Normalized Frequency');
+ylabel('|FFT(error)|');
+title('Frequency analysis of the spectral error');
+exportgraphics(f, 'saved_images/Spectral_frequency_error_analisys.png', 'ContentType', 'vector');
+grid on;
+
 %% Method 1 (All trials) - Adjust basic_counts through the reconstructed spectrum
 
 mean_coeficients = zeros(n_opt_func, n_obj_func, n_sersor_channels);
@@ -212,112 +254,44 @@ toc;
 
 %% Calculation of R² for each experiment using each of the methods
 
-% Number of experiments
-num_experiments = numel(experiment_name);
+% Gráfico de barras com lsqnonlin e EQM (MSE) apenas
+barWidth = 0.25;
 
-% Correct initialization of variables
-R2_MSE_values = zeros(n_opt_func, num_experiments);
-R2_WMSE_values = zeros(n_opt_func, num_experiments);
-R2_MAE_values = zeros(n_opt_func, num_experiments);
-R2_RMSE_values = zeros(n_opt_func, num_experiments);
-values_no_calib = zeros(1, num_experiments);
-no_coeficients = ones(1, 10);
-
-% Loop to calculate the metrics
-for j = 1:n_opt_func
-    for i = 1:num_experiments
-        experiment = experiment_name(i);
-        % Load sensor data
-        load(append("calibration_tests/sensor_measurements/", experiment, "-100_amostras.mat"));
-        sensor_values_no_diff = sum(buffer_sensor_values,1)./99;
-        sensor_values_no_diff = sensor_values_no_diff .* gain_correction;
-    
-        % Load and adjust sphere data
-        sphere_SPD = zeros(1, length(WaveLenght));
-        load(append("calibration_tests/sphere_measurements/spectrum/", experiment, "_S.mat"));
-        sphere_SPD(1:421) = data.Wrad_relative;
-        
-        % Metric to evaluate the performance of the methods through R²
-        y_mean = mean(sphere_SPD);
-        SS_tot = sum((sphere_SPD - y_mean).^2);
-        
-        % Reconstruction without calibration
-        reconstructed_no_calib = spectrum_restore(no_coeficients, sensor_values_no_diff);
-        SS_res_no_calib = sum((sphere_SPD' - reconstructed_no_calib).^2);
-        values_no_calib(1,i) = 1 - SS_res_no_calib / SS_tot;
-    
-        % Reconstruct using coefficients and calculate metrics
-        reconstructed = spectrum_restore(squeeze(mean_coeficients(j, 1, :))', sensor_values_no_diff);
-        SS_res = sum((sphere_SPD' - reconstructed).^2);
-        R2_MSE_values(j,i) = 1 - SS_res / SS_tot;
-        
-        reconstructed = spectrum_restore(squeeze(mean_coeficients(j, 2, :))', sensor_values_no_diff);
-        SS_res = sum((sphere_SPD' - reconstructed).^2);
-        R2_WMSE_values(j,i) = 1 - SS_res / SS_tot;
-         
-        reconstructed = spectrum_restore(squeeze(mean_coeficients(j, 3, :))', sensor_values_no_diff);
-        SS_res = sum((sphere_SPD' - reconstructed).^2);
-        R2_MAE_values(j,i) = 1 - SS_res / SS_tot;
-         
-        reconstructed = spectrum_restore(squeeze(mean_coeficients(j, 4, :))', sensor_values_no_diff);
-        SS_res = sum((sphere_SPD' - reconstructed).^2);
-        R2_RMSE_values(j,i) = 1 - SS_res / SS_tot;
-    end
-end
-
-% Plotting the bars including spectrum without calibration
-barWidth = 0.15;  % Adjustment to accommodate an extra bar
-% Colors specified for each bar
 barColors = [
-    [0.3 0.3 0.3];  % Dark gray for 'Without calibration'
-    [1 0.3 0.3];    % Soft red for MSE
-    [0.5 1 0.5];    % Soft green for WMSE
-    [1 0.5 1];      % Soft magenta for MAE
-    [0.5 0.5 1];    % Soft blue for RMSE
+    [0.3 0.3 0.3];  % Sem calibração
+    [1 0.3 0.3];    % EQM (MSE)
 ];
-% Reconstruct using coefficients from all methods for this experiment
-positions = (1:num_experiments) + (i-1)*barWidth*4 - barWidth*(num_experiments/2-0.5); % Adjusted positions for the bars
-R2_values_lsqnonlin = [R2_MSE_values(1,:) R2_WMSE_values(1,:) R2_MAE_values(1,:) R2_RMSE_values(1,:)];
-R2_values_particleswarm = [R2_MSE_values(2,:) R2_WMSE_values(2,:) R2_MAE_values(2,:) R2_RMSE_values(2,:)];
-
-titles_otim = ["lsqnonlin", "particleswarm"];
 
 f = figure;
-for j = 1:n_opt_func
-    subplot(n_opt_func,1,j);
-    hold on;
-    bar(positions - 2 * barWidth, values_no_calib, barWidth, 'FaceColor',  barColors(1, :));  % Black for uncalibrated
-    bar(positions - 1 * barWidth, R2_MSE_values(j,:), barWidth, 'FaceColor', barColors(2, :));
-    bar(positions, R2_WMSE_values(j,:), barWidth, 'FaceColor', barColors(3, :));
-    bar(positions + 1 * barWidth, R2_MAE_values(j,:), barWidth, 'FaceColor', barColors(4, :));
-    bar(positions + 2 * barWidth, R2_RMSE_values(j,:), barWidth, 'FaceColor', barColors(5, :));
-    
-    % Graph settings
-    set(gca, 'XTick', positions, 'XTickLabel', experiment_labels);
-    xtickangle(45);
-    legend({'Without calibration', 'MSE', 'WMSE', 'MAE', 'RMSE'}, 'Location', 'bestoutside');
-    title([titles_otim(j)]);
-    xlabel('Experiment');
-    ylabel('R²');
-    grid on;
-    axis tight;
-    min_value = min(min(R2_values_lsqnonlin), min(R2_values_particleswarm));
-    ylim([min_value - abs(min_value * 0.5), 1.1]);
-    hold off;
-end
+hold on;
 
-% Export the mean coefficients
-calibr_coeficients = squeeze(mean_coeficients(1, 1, :))'; % Export the MSE that obtained the best result
-save('calibr_coeficients.mat', 'calibr_coeficients');
+positions = 1:num_experiments;
 
-set(gcf, 'Position', get(0, 'Screensize'));  % Maximizes the figure window
-exportgraphics(f,'saved_images/All_R2.png','ContentType','vector');
+bar(positions - barWidth/2, values_no_calib, barWidth, 'FaceColor',  barColors(1, :));  % Sem calibração
+bar(positions + barWidth/2, R2_MSE_values(1,:), barWidth, 'FaceColor', barColors(2, :)); % EQM (lsqnonlin)
+
+set(gca, 'XTick', positions, 'XTickLabel', experiment_labels);
+xtickangle(45);
+legend({'Sem calibração', 'EQM - lsqnonlin'}, 'Location', 'bestoutside');
+title("EQM - lsqnonlin");
+xlabel('Experimento');
+ylabel('R²');
+grid on;
+axis tight;
+min_value = min([min(values_no_calib), min(R2_MSE_values(1,:))]);
+ylim([min_value - abs(min_value * 0.2), 1.1]);
+hold off;
+
+
+
+%set(gcf, 'Position', get(0, 'Screensize'));  % Maximizes the figure window
+exportgraphics(f,'saved_images/All_R2_EQM_lsqninlin.png','ContentType','vector');
 
 %% Reconstructed spectrum using the average coefficient of each method
 
 % Define the experiment to be analyzed. Within the standard of "Complete Experiments"
-experiment = "RGBW_100";
-Nome_grafico = "RGBW";
+experiment = "W_100";
+Nome_grafico = "White";
 file = append("calibration_tests/sphere_measurements/spectrum/",experiment,"_S.txt")';
 
 load(append("calibration_tests/sensor_measurements/",experiment,"-100_amostras.mat"));
@@ -342,34 +316,65 @@ SPD_RMSE = spectrum_restore(squeeze(mean_coeficients(1, 4, :))', sensor_values_n
 cmap = wavelengthToRGB(WaveLenght);
 
 f = figure;
-plot(WaveLenght, sphere_SPD,'--k','linew',2);
+plot(WaveLenght, sphere_SPD,'--k','linew',2); % Referência da esfera
 title(Nome_grafico);
 hold on;
 
-plot(WaveLenght, reconstruction_no_diff,'Color', barColors(1,:),'lineWidth', 1);
-plot(WaveLenght, SPD_MSE,'Color', barColors(2,:),'lineWidth', 1);
-plot(WaveLenght, SPD_WMSE,'Color', barColors(3,:),'lineWidth', 1);
-plot(WaveLenght, SPD_MAE,'Color', barColors(4,:),'lineWidth', 1);
-plot(WaveLenght, SPD_RMSE,'Color', barColors(5,:),'lineWidth', 1);
+plot(WaveLenght, reconstruction_no_diff,'Color', barColors(1,:),'lineWidth', 1); % Sem calibração
+plot(WaveLenght, SPD_MSE,'Color', barColors(2,:),'lineWidth', 1); % EQM - lsqnonlin
 
+minValue = min([min(reconstruction_no_diff), min(SPD_MSE), min(sphere_SPD)]);
+maxValue = max([max(reconstruction_no_diff), max(SPD_MSE), max(sphere_SPD)]);
 
-minValue = min([min(reconstruction_no_diff), min(SPD_MSE), min(SPD_WMSE), min(SPD_MAE), min(SPD_RMSE), min(sphere_SPD)]);
-maxValue = max([max(reconstruction_no_diff), max(SPD_MSE), max(SPD_WMSE), max(SPD_MAE), max(SPD_RMSE), max(sphere_SPD)]);
-% Add colored rectangle to represent the spectrum colors
 for i = 1:length(WaveLenght)-1
     x = [WaveLenght(i), WaveLenght(i+1), WaveLenght(i+1), WaveLenght(i)];
-    y = [minValue - maxValue*(0.15), minValue - maxValue*(0.15), minValue - maxValue*(0.05), minValue - maxValue*(0.05)]; % Height of the rectangle (adjust as needed)
+    y = [minValue - maxValue*(0.15), minValue - maxValue*(0.15), minValue - maxValue*(0.05), minValue - maxValue*(0.05)];
     fill(x, y, cmap(i,:), 'EdgeColor', 'none');
 end
 
-xlabel("Wavelength [nm]");
-ylabel("Relative Magnitude");
-grid on; 
-legend(["Sphere SPD" "Uncalibrated" "MSE" "WMSE" "MAE" "RMSE"],'location','northeast');
+xlabel("Comprimento de onda [nm]");
+ylabel("Magnitude relativa");
+grid on;
+legend(["Referência (esfera)", "Sem calibração", "EQM - lsqnonlin"], 'location', 'northeast');
 ylim([minValue - maxValue*(0.15), maxValue*(1.1)]);
 xlim([380, 1000]);
 
+
 exportgraphics(f,append('saved_images/SPD_reconstructed_methods_',experiment,'.png'),'ContentType','vector');
+
+
+%% Post-processing of the reconstructed SPD (spectral smoothing)
+% Applies smoothing filters to reduce undesired fluctuations
+
+% Apply Savitzky-Golay filter (order 2, window size 11)
+SPD_smooth_sgolay = sgolayfilt(SPD_MSE, 2, 11);
+
+% Apply moving average filter as an alternative
+SPD_smooth_movmean = movmean(SPD_MSE, 11);
+
+% Compute RMSE before and after smoothing
+rmse_original = sqrt(mean((SPD_MSE - sphere_SPD').^2));
+rmse_sgolay = sqrt(mean((SPD_smooth_sgolay - sphere_SPD').^2));
+rmse_movmean = sqrt(mean((SPD_smooth_movmean - sphere_SPD').^2));
+
+disp("RMSE - Adjusted (no filter): " + rmse_original);
+disp("RMSE - Smoothed (Savitzky-Golay): " + rmse_sgolay);
+disp("RMSE - Smoothed (Moving Average): " + rmse_movmean);
+
+% Plotting to compare results
+f = figure;
+plot(WaveLenght, sphere_SPD, '--k', 'LineWidth', 2);
+hold on;
+plot(WaveLenght, SPD_MSE, 'b', 'LineWidth', 1);
+plot(WaveLenght, SPD_smooth_sgolay, 'r', 'LineWidth', 1);
+plot(WaveLenght, SPD_smooth_movmean, 'g', 'LineWidth', 1);
+legend('Reference (integrating sphere)', 'Adjusted reconstruction', ...
+       'Savitzky-Golay', 'Moving average', 'Location', 'northeast');
+xlabel("Wavelength [nm]");
+ylabel("Relative Magnitude");
+grid on;
+title("Spectral smoothing comparison of the reconstructed SPD");
+exportgraphics(f, 'saved_images/SPD_smoothing_comparison_RGB_100.png', 'ContentType', 'vector');
 
 %% Function that reconstructs the spectrum through the Golden Device matrix
 function SPD_reconstruida_norm = spectrum_restore(calibration_coeficients, sensor_values)
